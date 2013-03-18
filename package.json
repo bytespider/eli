@@ -1,4 +1,8 @@
 {
-	"name": "eli",
-	"version": "0.1.0"
+  "name": "eli",
+  "version": "0.1.0",
+  "dependencies": {
+    "redis": "~0.8.2",
+    "marked": "~0.2.8"
+  }
 }
