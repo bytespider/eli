@@ -6,6 +6,11 @@
             "detect_buffers": true
         }
     },
+    "plugins": [
+        "eli-plugin-store",
+        "eli-plugin-static",
+        "eli-plugin-rss"
+    ],
     "static": {
         "dir": "public"
     }
