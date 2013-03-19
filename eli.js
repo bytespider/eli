@@ -11,8 +11,8 @@ eli.config  = require(path.resolve('config'));
 eli.plugins = 'plugins' in eli.config ? eli.config.plugins : ['eli-plugin-static'];
 loadPlugins(eli);
 
-
 eli.pubsub = createRedisConnection(eli.config);
+eli.redis  = createRedisConnection(eli.config);
 
 eli.pubsub.subscribe('eli.posts.publish');
 eli.pubsub.subscribe('eli.posts.draft');
@@ -40,7 +40,8 @@ function createRedisConnection(config) {
     var options = config.db.options || null;
 
     return redis.createClient(port, host, options);
-}
+};
+
 
 function loadPlugins(eli) {
     var plugins = eli.plugins;
