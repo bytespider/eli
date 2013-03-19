@@ -1,29 +1,35 @@
-var client = createDBConnection();
-var pubsub = createDBConnection();
+var path = require('path');
+var EE = require('events').EventEmitter;
 
-client.smembers('posts.publish', function (err, obj) {
-    if (err) {
-        throw new Error(err);
-    }
+var eli = module.exports = Object.create(EE.prototype, {constructor: {value: null, writable: true, configurable: true}});
+EE.call(eli);
 
-    obj.forEach(function (post) {
-        createStatic(post);
+eli.package = require(path.resolve('package'));
+eli.version = eli.package.version;
+eli.config  = require(path.resolve('config'));
+
+eli.plugins = ('plugins' in eli.config ? eli.config.plugins : []).concat(['eli-plugin-static']);
+loadPlugins(eli);
+
+
+eli.pubsub = createRedisConnection(eli.config);
+
+
+eli.pubsub.subscribe('eli.posts');
+
+eli.pubsub.on('message', function (channel, message) {
+    var matches = channel.match(/publish|draft/);
+    var event = matches[0];
+    eli.plugins.forEach(function (plugin, i, plugins) {
+        postPluginMessage(plugin, event, message);
     });
 });
-client.smembers('posts.draft', function (err, obj) { /* do nothing with drafts for now */ });
 
-pubsub.psubscribe('posts.publish.*');
-pubsub.psubscribe('posts.draft.*');
+console.log(eli);
+eli.emit('publish', 'some text');
 
-pubsub.on('pmessage', function (pattern, channel, message) {
-    var matches = channel.match(/posts.(publish|draft).(\d{4}\d{2}\d{2})/);
-    client.sadd('posts.' + matches[1], matches[2]);
-    channel_handlers[pattern](message);
-});
-
-function createDBConnection() {
+function createRedisConnection(config) {
     var redis   = require('redis');
-    var config  = require('./config');
 
     var host    = config.db.host    || 'localhost';
     var port    = config.db.port    || 6379;
@@ -32,12 +38,23 @@ function createDBConnection() {
     return redis.createClient(port, host, options);
 }
 
-function createStatic(post) {
-    console.log(post);
+function loadPlugins(eli) {
+    var plugins = eli.plugins;
+    plugins.forEach(loadPluginsIterator);
+
+    function loadPluginsIterator(plugin, i, plugins) {
+        try {
+            return require(plugin)(eli);
+        } catch (err) {
+            // plugin could not be loaded
+            console.log('Eli plugin ‘%s’ could not be loaded.', plugin);
+            console.error(err);
+        }
+    }
 }
 
-var channel_handlers = {
-    'posts.publish.*': function (message) {
-        console.log(message);
-    }
-};
+function postPluginMessage(plugin, event, message) {
+    plugin = require(plugin);
+    event = 'on' + event;
+    event in plugin ? plugin[event](message) : null;
+}
