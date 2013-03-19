@@ -14,19 +14,23 @@ loadPlugins(eli);
 
 eli.pubsub = createRedisConnection(eli.config);
 
-
-eli.pubsub.subscribe('eli.posts');
+eli.pubsub.subscribe('eli.posts.publish');
+eli.pubsub.subscribe('eli.posts.draft');
 
 eli.pubsub.on('message', function (channel, message) {
-    var matches = channel.match(/publish|draft/);
-    var event = matches[0];
-    eli.plugins.forEach(function (plugin, i, plugins) {
-        postPluginMessage(plugin, event, message);
-    });
-});
+    var action = channel.match(/publish|draft/);
+    var count = EE.listenerCount(eli, action);
 
-console.log(eli);
-eli.emit('publish', 'some text');
+    console.log('Dispatching ‘%s’ to %d plugins.', action, count);
+    eli.emit(action, message, cb);
+
+    function cb() {
+        count--;
+        if (count == 0) {
+            eli.emit(action + '-complete');
+        }
+    }
+});
 
 function createRedisConnection(config) {
     var redis   = require('redis');
