@@ -8,7 +8,7 @@ eli.package = require(path.resolve('package'));
 eli.version = eli.package.version;
 eli.config  = require(path.resolve('config'));
 
-eli.plugins = ('plugins' in eli.config ? eli.config.plugins : []).concat(['eli-plugin-static']);
+eli.plugins = 'plugins' in eli.config ? eli.config.plugins : ['eli-plugin-static'];
 loadPlugins(eli);
 
 
@@ -51,10 +51,4 @@ function loadPlugins(eli) {
             console.error(err);
         }
     }
-}
-
-function postPluginMessage(plugin, event, message) {
-    plugin = require(plugin);
-    event = 'on' + event;
-    event in plugin ? plugin[event](message) : null;
 }
