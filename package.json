@@ -1,11 +1,8 @@
 {
   "name": "eli",
   "version": "0.1.0",
+  "bin": "bin/eli",
   "dependencies": {
-    "redis": "~0.8.2",
-    "marked": "~0.2.8",
-    "mkdirp": "~0.3.5",
-    "eli-plugin-static": "~0.1.0",
-    "eli-plugin-store": "~0.1.0"
+    "redis": "~0.8.2"
   }
 }
