@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+
+var args = process.argv.slice(2);
+
+for (var i = 0; i < args.length; i ++) {
+    if (args[i].charAt(0) === "-" && args[i].length > 2) {
+        var arg = args[i].replace(/^-+/, "").split("").map(function (a) {
+            return "-" + args;
+        });
+        args.splice.apply(args, [i, 1].concat(arg));
+    }
+}
+
+while (args.length > 0) {
+    var arg = args.shift();
+    switch(arg) {
+        case "-h":
+            break;
+
+        case "-v": // display version and exit
+        case "-V":
+        case "--version":
+            var version = require('../package').version;
+            console.log(version);
+            process.exit();
+            break;
+    }
+}
+
+require('../eli');

@@ -6,7 +6,7 @@ EE.call(eli);
 
 eli.package = require(path.resolve('package'));
 eli.version = eli.package.version;
-eli.config  = require(path.resolve('config'));
+eli.config  = require(path.resolve('.', 'config'));
 
 eli.plugins = 'plugins' in eli.config ? eli.config.plugins : ['eli-plugin-static'];
 loadPlugins(eli);
@@ -48,8 +48,9 @@ function loadPlugins(eli) {
     plugins.forEach(loadPluginsIterator);
 
     function loadPluginsIterator(plugin, i, plugins) {
+        var node_modules = path.resolve('node_modules');
         try {
-            return require(plugin)(eli);
+            return require(path.resolve(node_modules, plugin))(eli);
         } catch (err) {
             // plugin could not be loaded
             console.log('Eli plugin ‘%s’ could not be loaded.', plugin);
