@@ -19,10 +19,20 @@ eli.pubsub.subscribe('eli.posts.draft');
 
 eli.pubsub.on('message', function (channel, message) {
     var action = channel.match(/publish|draft/);
+    if (!action) {
+        return;
+    }
+
+    // parse message into post and metadata
+    var message_data = parseMessage(message);
+    if (message_data == null) {
+        return;
+    }
+
     var count = EE.listenerCount(eli, action);
 
     console.log('Dispatching ‘%s’ to %d plugins.', action, count);
-    eli.emit(action, message, cb);
+    eli.emit(action, message_data.post, message_data.metadata || {}, cb);
 
     function cb() {
         count--;
@@ -57,4 +67,19 @@ function loadPlugins(eli) {
             console.error(err);
         }
     }
+}
+
+function parseMessage(message) {
+    var message_data = JSON.parse(message);
+    if (!('post' in message_data)) {
+       return null;    
+    }
+
+    var post = message_data.post;
+    delete message_data.post;
+
+    return {
+        post: post, 
+        metadata: message_data
+    };
 }
