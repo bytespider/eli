@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "bin": "bin/eli",
   "dependencies": {
-    "redis": "~0.8.2"
+    "faye": "~0.8.9"
   }
 }
