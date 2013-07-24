@@ -1,6 +1,8 @@
 var path = require('path');
 var EE = require('events').EventEmitter;
 
+var faye = require('faye');
+
 var eli = module.exports = Object.create(EE.prototype, {constructor: {value: null, writable: true, configurable: true}});
 EE.call(eli);
 
@@ -11,23 +13,24 @@ eli.config  = require(path.resolve('.', 'config'));
 eli.plugins = 'plugins' in eli.config ? eli.config.plugins : ['eli-plugin-static'];
 loadPlugins(eli);
 
-eli.pubsub = createRedisConnection(eli.config);
-eli.redis  = createRedisConnection(eli.config);
 
-eli.pubsub.subscribe('eli.posts.publish');
-eli.pubsub.subscribe('eli.posts.draft');
+eli.pubsub = new faye.NodeAdapter({ mount: '/', timeout: 45 });
+eli.client = eli.pubsub.getClient();
 
-eli.pubsub.on('message', function (channel, message) {
-    var action = channel.match(/publish|draft/);
-    if (!action) {
-        return;
-    }
+eli.client.subscribe('eli.posts', function (message) {
+    console.log('Message received: ‘%s’', message);
 
     // parse message into post and metadata
+    console.log('Parsing data...');
     var message_data = parseMessage(message);
-    if (message_data == null) {
+    console.log('Parsed message data: ', message_data);
+
+    if (!message_data) {
+        console.error('No message data found.');
         return;
     }
+
+    var action = message_data.action;
 
     var count = EE.listenerCount(eli, action);
 
@@ -42,35 +45,32 @@ eli.pubsub.on('message', function (channel, message) {
     }
 });
 
-function createRedisConnection(config) {
-    var redis   = require('redis');
-
-    var host    = config.db.host    || 'localhost';
-    var port    = config.db.port    || 6379;
-    var options = config.db.options || null;
-
-    return redis.createClient(port, host, options);
-};
-
-
 function loadPlugins(eli) {
     var plugins = eli.plugins;
     plugins.forEach(loadPluginsIterator);
 
     function loadPluginsIterator(plugin, i, plugins) {
         var node_modules = path.resolve('node_modules');
+        var module_path = path.resolve(node_modules, plugin);
+
         try {
-            return require(path.resolve(node_modules, plugin))(eli);
-        } catch (err) {
-            // plugin could not be loaded
-            console.log('Eli plugin ‘%s’ could not be loaded.', plugin);
-            console.error(err);
+            var plugin = require(module_path);
+            return plugin(eli);
+        } catch (error) {
+            console.error(error);
         }
+        
+        return false;
     }
 }
 
 function parseMessage(message) {
-    var message_data = JSON.parse(message);
+    try {
+        var message_data = JSON.parse(message.toString());
+    } catch (err) {
+        console.error(err);
+        return;
+    }
     if (!('post' in message_data)) {
        return null;    
     }
